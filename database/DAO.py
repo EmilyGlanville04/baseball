@@ -1,5 +1,5 @@
 from database.DB_connect import DBConnect
-from model.team import Team
+from model.teams import Teams
 
 
 class DAO():
@@ -7,62 +7,52 @@ class DAO():
     @staticmethod
     def getAllYears():
         conn = DBConnect.get_connection()
-
-        result = []
-
+        results = []
         cursor = conn.cursor(dictionary=True)
-        query = """select distinct(t.year)
-                    from teams t
-                    where t.year >= 1980"""
-
+        query = """select distinct t.`year` 
+                        from teams t 
+                        where t.`year` >="1980"
+                        order by t.`year` asc """
         cursor.execute(query)
-
         for row in cursor:
-            result.append(row["year"])
-
+            results.append(row["year"])
         cursor.close()
         conn.close()
-        return result
+        return results
 
     @staticmethod
-    def getTeamsOfYear(year):
+    def getAllTeamsByYear(year):
         conn = DBConnect.get_connection()
-
-        result = []
-
+        results = []
         cursor = conn.cursor(dictionary=True)
-        query = """select *
-                    from teams t
-                    where t.year = %s"""
-
-        cursor.execute(query, (year, ))
-
+        query = """select t.*
+                    from teams t 
+                    where t.`year` =%s
+                    order by t.teamCode asc """
+        cursor.execute(query, (year,))
         for row in cursor:
-            result.append(Team(**row))
-
+            results.append(Teams(**row))
         cursor.close()
         conn.close()
-        return result
+        return results
 
     @staticmethod
-    def getSalariesTeam(year, idMapTeams):
+    def getSalariesByTeam(year, idMapTeams):
         conn = DBConnect.get_connection()
-
-        result = []
-
+        results = {}
         cursor = conn.cursor(dictionary=True)
-        query = """select t.ID, t.teamCode, sum(s.salary) as totSalary
-                    from salaries s, teams t, appearances a 
-                    where s.`year` = t.`year` and t.`year` = a.`year` and a.`year` = %s
-                    and t.ID = a.teamID and a.playerID = s.playerID 
-                    group by t.ID , t.teamCode """
-
-        cursor.execute(query, (year, ))
-
-        mapSalary ={}
+        query = """SELECT t.ID, t.teamCode, SUM(s.salary) AS totSalary
+                FROM salaries s, teams t, appearances a
+                WHERE s.year = t.year
+                  AND t.year = a.year
+                  AND a.year = %s
+                  AND t.ID = a.teamID
+                  AND a.playerID = s.playerID
+                GROUP BY t.ID, t.teamCode
+                                            """
+        cursor.execute(query, (year,))
         for row in cursor:
-             mapSalary[idMapTeams[ row["ID"]]] = row["totSalary"]
-
+            results[idMapTeams[row["ID"]]] = row["totSalary"]
         cursor.close()
         conn.close()
-        return mapSalary
+        return results

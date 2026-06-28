@@ -24,9 +24,8 @@ class View(ft.UserControl):
         self._title = ft.Text("TdP Baseball Manager 2026", color="blue", size=24)
         # self._page.controls.append(self._title)
 
-        self._ddAnno = ft.Dropdown(label="Anno", width=200, alignment=ft.alignment.top_left,
-                                   on_change=self._controller.handleYearSelection)
-        self._controller._fillDDYears(),
+        self._ddAnno = ft.Dropdown(label="Anno", width=200, alignment=ft.alignment.top_left,on_change=self._controller.handleYearSelection)
+        self._controller.fillDdAnno()
 
 
         row1 = ft.Row([ft.Container(self._title, width=500),

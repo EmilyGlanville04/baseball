@@ -9,77 +9,73 @@ class Controller:
         self._model = model
         self._choiceTeam = None
 
-    def handleCreaGrafo(self, e):
-        self._model.creaGrafo(self._view._ddAnno.value)
-        n, m = self._model.getGraphDetails()
-        self._view._txt_result.controls.clear()
-        self._view._txt_result.controls.append(
-            ft.Text(f"Grafo correttamente creato! "
-                    f"Il grafo è costituito di {n} nodi ed {m} archi"))
 
+    def handleCreaGrafo(self, e):
+        self._view._txt_result.controls.clear()
+        anno = self._view._ddAnno.value
+        if anno is None:
+            self._view.create_alert("Selezionare un anno")
+            return
+        self._model.buildGraph(anno)
+        n,m = self._model.getGraphDetails()
+        self._view._txt_result.controls.append(ft.Text(f"Grafo correttamente creato con {n} nodi e {m} archi"))
         self._view.update_page()
 
 
     def handleDettagli(self, e):
-        if self._choiceTeam is None:
-            self._view._txt_result.controls.clear()
-            self._view._txt_result.controls.append(ft.Text(f"Selezionare un team dal menu.", color="red"))
-            self._view.update_page()
-            return
-
-        viciniTuple =  self._model.getVicini(self._choiceTeam)
         self._view._txt_result.controls.clear()
-        self._view._txt_result.controls.append(ft.Text(f"Il nodo {self._choiceTeam} ha {len(viciniTuple)} vicini.", color="green"))
-        self._view._txt_result.controls.append(ft.Text(f"Di seguito una lista ordinata dei vicini.", color="green"))
-        for v in viciniTuple:
-            self._view._txt_result.controls.append(
-                ft.Text(f"{v[0]} - peso: {v[1]}", color="green"))
-
+        idSquadra = self._view._ddSquadra.value
+        if idSquadra is None:
+            self._view.create_alert("Selezionare una squadra")
+            return
+        nodo = self._model.getSquadraById(idSquadra)
+        vicini = self._model.getVicini(nodo)
+        self._view._txt_result.controls.append(ft.Text(f"Stampo i vicini di {nodo.name} con i relativi pesi"))
+        for nodoB, peso in vicini:
+            self._view._txt_result.controls.append(ft.Text(f"{nodoB.name} ---> {peso}"))
         self._view.update_page()
+
 
     def handlePercorso(self, e):
-        pass
-
-    def _fillDDYears(self):
-        years = self._model.getAllYears()
-
-        # yearsDD = []
-        # for y in years:
-        #     yearsDD.append(ft.dropdown.Option(y))
-
-        yearsDD = list(map(lambda x: ft.dropdown.Option(x), years))
-        self._view._ddAnno.options = yearsDD
-        self._view.update_page()
-
-
-    def handleYearSelection(self, e):
-        #questo metodo viene chiamato quando qualcuno ha selezionato un anno, deve recuperare
-        #tutti i team che hanno giocato quell'anno, e stamparli nel textfield, e anche riempire
-        #il dropdown sotto.
-
-        if self._view._ddAnno.value is None:
-            self._view._txtOutSquadre.controls.clear()
-            self._view._txtOutSquadre.controls.append(ft.Text("Selezionare un anno dal menu."))
-
-        teams = self._model.getTeamsOfYear(self._view._ddAnno.value)
-
-        self._view._txtOutSquadre.controls.clear()
-        self._view._txtOutSquadre.controls.append(ft.Text(f"Per il {self._view._ddAnno.value} sono iscritte al "
-                                                          f"campionato {len(teams)} squadre."))
-        for t in teams:
-            self._view._txtOutSquadre.controls.append(ft.Text(t))
-            self._view._ddSquadra.options.append(
-                ft.dropdown.Option(data = t,
-                                   text = t.name,
-                                   on_click = self.readDDTeams)
+        self._view._txt_result.controls.clear()
+        idSquadra = self._view._ddSquadra.value
+        if idSquadra is None:
+            self._view.create_alert("Selezionare una squadra")
+            return
+        nodoStart = self._model.getSquadraById(idSquadra)
+        cammino, pesoTot = self._model.trovaCammino(nodoStart)
+        self._view._txt_result.controls.append(
+            ft.Text(f"Percorso migliore da {nodoStart}:")
+        )
+        for i in range(len(cammino) - 1):
+            peso = self._model._graph[cammino[i]][cammino[i + 1]]["weight"]
+            self._view._txt_result.controls.append(
+                ft.Text(f"{cammino[i]} -> {cammino[i + 1]} | peso: {peso}")
             )
-
+        self._view._txt_result.controls.append(
+            ft.Text(f"Peso totale: {pesoTot}")
+        )
         self._view.update_page()
 
 
-    def readDDTeams(self, e):
-        if e.control.data is None:
-            self._choiceTeam = None
-        else:
-            self._choiceTeam = e.control.data
-        print(f"Selezionato il team {self._choiceTeam}")
+    def fillDdAnno(self):
+        anni = self._model.getAllYears()
+        for a in anni:
+            self._view._ddAnno.options.append(ft.dropdown.Option(a))
+        self._view.update_page()
+
+
+    def handleYearSelection(self,e):
+        self._view._txtOutSquadre.controls.clear()
+        year = self._view._ddAnno.value
+        squadre = self._model.getTeamsByYear(year)
+        self._view._txtOutSquadre.controls.clear()
+        self._view._txtOutSquadre.controls.append(ft.Text(f"Ho trovato {len(squadre)} che hanno giocato nel {year}"))
+        for s in squadre:
+            self._view._txtOutSquadre.controls.append(ft.Text(str(s)))
+        for s in squadre:
+            self._view._ddSquadra.options.append(ft.dropdown.Option(key=str(s.ID), text=s.teamCode))
+        self._view.update_page()
+
+
+
